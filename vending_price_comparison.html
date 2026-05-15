@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>販賣機採購比價系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14;--surface:#161a24;--surface2:#1e2435;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e8eaf2;--text2:#8890a8;--text3:#4a5168;
+  --accent:#4ade80;--accent-dim:rgba(74,222,128,0.12);--accent-border:rgba(74,222,128,0.3);
+  --danger:#f87171;--danger-dim:rgba(248,113,113,0.12);--danger-border:rgba(248,113,113,0.3);
+  --warn:#fbbf24;--warn-dim:rgba(251,191,36,0.12);--warn-border:rgba(251,191,36,0.3);
+  --info:#60a5fa;--info-dim:rgba(96,165,250,0.1);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.12);
+  --radius:8px;--radius-lg:12px;
+  --mono:'DM Mono',monospace;--sans:'Noto Sans TC',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+.app{min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:fixed;top:0;left:0;right:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700}
+.logo-icon{width:30px;height:30px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.header-right{display:flex;gap:8px;align-items:center}
+.main{grid-template-columns:220px 1fr;overflow:hidden}
+
+/* Sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;min-height:0}
+.sb-section{padding:12px 13px;border-bottom:1px solid var(--border)}
+.sb-label{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.cat-btn{display:block;width:100%;text-align:left;padding:6px 9px;border-radius:var(--radius);border:none;background:none;color:var(--text2);cursor:pointer;font-size:13px;font-family:var(--sans);transition:all .15s;margin-bottom:2px}
+.cat-btn:hover{background:var(--surface2);color:var(--text)}
+.cat-btn.active{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)}
+.cat-count{float:right;font-size:11px;font-family:var(--mono);background:var(--surface2);padding:1px 6px;border-radius:10px;color:var(--text3)}
+.cat-btn.active .cat-count{background:rgba(74,222,128,.2);color:var(--accent)}
+.chip{display:flex;align-items:center;justify-content:space-between;border-radius:var(--radius);padding:6px 9px;margin-bottom:5px;border:1px solid var(--border2)}
+.chip.store-chip{background:var(--surface2)}
+.chip.mfr-chip{background:rgba(167,139,250,0.07);border-color:rgba(167,139,250,0.2)}
+.chip-left{display:flex;align-items:center;gap:7px;min-width:0}
+.chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.chip-info{min-width:0}
+.chip-name{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-sub{font-size:10px;color:var(--text3)}
+.chip-rm{background:none;border:none;color:var(--text3);cursor:pointer;font-size:17px;line-height:1;padding:0 2px;flex-shrink:0}
+.chip-rm:hover{color:var(--danger)}
+
+/* Expiry alert panel in sidebar */
+.expiry-panel{margin:0}
+.exp-item{display:flex;align-items:center;justify-content:space-between;padding:6px 9px;border-radius:var(--radius);margin-bottom:4px;font-size:12px;cursor:pointer;transition:opacity .15s}
+.exp-item:hover{opacity:.8}
+.exp-item.expired{background:var(--danger-dim);border:1px solid var(--danger-border)}
+.exp-item.urgent{background:rgba(251,191,36,0.15);border:1px solid var(--warn-border)}
+.exp-item.soon{background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.15)}
+.exp-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.exp-days{font-family:var(--mono);font-size:11px;flex-shrink:0;margin-left:6px;font-weight:700}
+.exp-days.expired{color:var(--danger)}.exp-days.urgent{color:var(--warn)}.exp-days.soon{color:#fde68a}
+.no-exp{font-size:12px;color:var(--text3);text-align:center;padding:8px 0}
+
+/* Content */
+.content{display:flex;flex-direction:column;overflow:hidden;min-height:0;height:100%}
+.content-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;flex-shrink:0}
+.page-title{font-size:16px;font-weight:700}
+.toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.search-wrap{position:relative}
+.search-wrap input{padding-left:29px;width:175px}
+.s-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;font-size:13px}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:5px;padding:8px 20px;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;align-items:center;background:var(--bg)}
+.filter-label{font-size:11px;color:var(--text3);white-space:nowrap;margin-right:2px}
+.fpill{padding:3px 10px;border-radius:20px;border:1px solid var(--border2);background:none;color:var(--text2);cursor:pointer;font-size:12px;font-family:var(--sans);white-space:nowrap;transition:all .15s}
+.fpill:hover{background:var(--surface2);color:var(--text)}
+.fpill.active-store{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+.fpill.active-mfr{background:var(--purple-dim);border-color:rgba(167,139,250,.4);color:var(--purple)}
+.fpill.active-exp{background:var(--danger-dim);border-color:var(--danger-border);color:var(--danger)}
+.divider-v{width:1px;height:18px;background:var(--border2);margin:0 3px;flex-shrink:0}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);flex-shrink:0}
+.stat-card{background:var(--bg);padding:11px 14px;cursor:default}
+.stat-card.clickable{cursor:pointer;transition:background .15s}
+.stat-card.clickable:hover{background:var(--surface2)}
+.stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.stat-value{font-size:20px;font-weight:700;font-family:var(--mono)}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.sv-green{color:var(--accent)}.sv-warn{color:var(--warn)}.sv-danger{color:var(--danger)}
+
+/* Table */
+.table-wrap{flex:1;overflow:auto;min-height:0}
+table{width:100%;border-collapse:collapse;min-width:900px}
+thead th{position:sticky;top:0;background:var(--surface);padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;z-index:2}
+thead th.th-exp{background:#1a1520}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+tbody tr.row-expired{background:rgba(248,113,113,0.04)}
+tbody tr.row-urgent{background:rgba(251,191,36,0.04)}
+td{padding:9px 10px;vertical-align:middle}
+.td-name{font-weight:500;font-size:13px}
+.badge-cat{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;background:var(--info-dim);color:var(--info);border:1px solid rgba(96,165,250,.2)}
+.badge-mfr{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 6px;border-radius:4px;background:var(--purple-dim);color:var(--purple);border:1px solid rgba(167,139,250,.25);white-space:nowrap}
+.pc{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.pc.best{color:var(--accent)}.pc.worst{color:var(--danger)}.pc.none{color:var(--text3);font-size:11px}
+.best-tag{display:inline-block;font-size:9px;padding:1px 4px;border-radius:3px;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border);margin-left:2px;font-family:var(--sans);font-weight:700;vertical-align:middle}
+.store-badge{display:inline-flex;align-items:center;gap:3px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;white-space:nowrap}
+.save-main{color:var(--accent);font-size:12px;font-family:var(--mono)}
+.save-sub{font-size:10px;color:var(--text3)}
+.qty-low{color:var(--warn);font-family:var(--mono);font-size:12px}
+.qty-ok{color:var(--text);font-family:var(--mono);font-size:12px}
+
+/* Expiry cell */
+.exp-cell{white-space:nowrap}
+.exp-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;font-family:var(--mono)}
+.exp-badge.expired{background:var(--danger-dim);color:var(--danger);border:1px solid var(--danger-border)}
+.exp-badge.urgent{background:var(--warn-dim);color:var(--warn);border:1px solid var(--warn-border)}
+.exp-badge.soon{background:rgba(251,191,36,0.07);color:#fde68a;border:1px solid rgba(253,230,138,.25)}
+.exp-badge.ok{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)}
+.exp-badge.none{color:var(--text3);font-size:11px;background:none;border:none;padding:0;font-weight:400}
+.exp-date{display:block;font-size:10px;color:var(--text3);margin-top:1px;font-family:var(--mono)}
+.row-actions{display:flex;gap:3px;opacity:0;transition:opacity .1s}
+tbody tr:hover .row-actions{opacity:1}
+.empty-state{text-align:center;padding:50px;color:var(--text3)}
+
+/* Add panel */
+.add-panel{border-top:1px solid var(--border);background:var(--surface);padding:10px 20px;flex-shrink:0}
+.add-panel-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.add-grid{display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end}
+.ag{display:flex;flex-direction:column;gap:3px}
+.ag label{font-size:10px;color:var(--text3)}
+.ag.grow{flex:1;min-width:120px}.ag.short{width:73px}.ag.mid{width:90px}.ag.date{width:115px}
+
+/* Forms */
+input,select{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 9px;outline:none;width:100%;transition:border-color .15s}
+input:focus,select:focus{border-color:rgba(74,222,128,.4)}
+input::placeholder{color:var(--text3)}
+select option{background:var(--surface2)}
+input[type="date"]{color-scheme:dark}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#0d1a10;border-color:var(--accent)}
+.btn-primary:hover{background:#6ee7a0}
+.btn-ghost{background:none;color:var(--text2)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-danger{background:none;color:var(--danger);border-color:rgba(248,113,113,.2)}
+.btn-danger:hover{background:var(--danger-dim)}
+.btn-sm{padding:3px 8px;font-size:12px}.btn-icon{padding:4px 6px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:22px;width:560px;max-width:94vw;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:15px}
+.mrow{margin-bottom:11px}
+.mrow>label{display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.price-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.pgi label{display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.type-row{display:flex;gap:7px;flex-wrap:wrap}
+.type-pill{flex:1;min-width:70px;text-align:center;padding:7px 5px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;font-size:12px;color:var(--text2);background:none;font-family:var(--sans);transition:all .15s}
+.type-pill:hover{border-color:var(--accent-border);color:var(--text)}
+.type-pill.selected{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent);font-weight:500}
+.type-pill.sel-purple{background:var(--purple-dim);border-color:rgba(167,139,250,.4);color:var(--purple);font-weight:500}
+.modal-divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+.sec-head{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.sec-dot{width:6px;height:6px;border-radius:50%}
+.notif{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--accent-border);color:var(--accent);border-radius:var(--radius);padding:8px 13px;font-size:13px;transform:translateY(18px);opacity:0;transition:all .25s;z-index:300;display:flex;align-items:center;gap:6px}
+.notif.show{transform:translateY(0);opacity:1}
+
+/* Nav tabs */
+.header-nav{display:flex;gap:4px;align-items:center}
+.nav-tab{padding:6px 16px;border-radius:var(--radius);border:none;background:none;color:var(--text2);cursor:pointer;font-size:13px;font-family:var(--sans);font-weight:500;transition:all .15s}
+.nav-tab:hover{background:var(--surface2);color:var(--text)}
+.nav-tab.active{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)}
+
+/* Sales table */
+#page-sales table thead th{position:sticky;top:0;background:var(--surface);padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+#page-sales table tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+#page-sales table tbody tr:hover{background:rgba(255,255,255,.02)}
+#page-sales table td{padding:9px 12px;vertical-align:middle;font-size:13px}
+.profit-pos{color:var(--accent);font-family:var(--mono);font-weight:500}
+.profit-neg{color:var(--danger);font-family:var(--mono);font-weight:500}
+.profit-zero{color:var(--text3);font-family:var(--mono)}
+
+/* Page switch */
+.page-hidden{display:none !important}
+#page-sales{height:calc(100vh - 56px);flex-direction:column;overflow:hidden}
+#page-inventory{display:grid;grid-template-columns:220px 1fr;height:calc(100vh - 56px);overflow:hidden}
+#page-inventory.page-hidden{display:none !important}
+
+/* ── 已有的 pulse-danger ── */
+@keyframes pulse-danger{0%,100%{background:rgba(248,113,113,0.04)}50%{background:rgba(248,113,113,0.09)}}
+tbody tr.row-expired{animation:pulse-danger 2.5s infinite}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">
+    <div class="logo-icon">🥤</div>
+    <span>販賣機採購比價系統</span>
+  </div>
+  <nav class="header-nav">
+    <button class="nav-tab active" id="nav-inventory" onclick="switchPage('inventory')">📦 採購比價</button>
+    <button class="nav-tab" id="nav-sales" onclick="switchPage('sales')">📊 販售資料</button>
+  </nav>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="syncStatus" style="font-size:11px;color:var(--text3)">連線中…</span>
+  <div class="header-right" id="header-actions-inventory">
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ 匯出 CSV</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddItemModal()">＋ 新增飲料</button>
+  </div>
+  <div class="header-right" id="header-actions-sales" style="display:none">
+    <button class="btn btn-ghost btn-sm" onclick="exportSalesCSV()">⬇ 匯出 CSV</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddSaleModal()">＋ 新增銷售記錄</button>
+  </div>
+  </div><!-- end sync wrapper -->
+</header>
+
+<div style="position:fixed;top:56px;left:0;right:0;bottom:0;overflow:hidden">
+<div class="main" id="page-inventory" style="display:grid;grid-template-columns:220px 1fr;height:100%;overflow:hidden">
+  <aside class="sidebar">
+    <!-- 類別 -->
+    <div class="sb-section">
+      <div class="sb-label">飲料類別</div>
+      <div id="catList"></div>
+    </div>
+    <!-- 過期警示 -->
+    <div class="sb-section">
+      <div class="sb-label" style="color:var(--danger)">⚠ 效期警示</div>
+      <div id="expiryPanel"></div>
+    </div>
+    <!-- 採購通路 -->
+    <div class="sb-section">
+      <div class="sb-label"><span>採購通路</span>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="openAddStoreModal()" style="padding:1px 5px">＋</button>
+      </div>
+      <div id="storeList"></div>
+    </div>
+    <!-- 飲料廠商 -->
+    <div class="sb-section" style="flex:1">
+      <div class="sb-label"><span>飲料廠商</span>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="openAddMfrModal()" style="padding:1px 5px">＋</button>
+      </div>
+      <div id="mfrList"></div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="content-header">
+      <div class="page-title" id="pageTitle">全部飲料</div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="s-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="搜尋飲料…" oninput="render()">
+        </div>
+        <select id="sortSel" onchange="render()" style="width:auto">
+          <option value="slot_asc">倉道排序</option>
+          <option value="name">名稱排序</option>
+          <option value="exp_asc">效期最近</option>
+          <option value="best_asc">最低價 ↑</option>
+          <option value="best_desc">最低價 ↓</option>
+          <option value="save_desc">差價最大</option>
+          <option value="qty_asc">庫存 ↑</option>
+          <option value="qty_desc">庫存 ↓</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-bar" id="filterBar"></div>
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="table-wrap">
+      <table><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table>
+      <div class="empty-state" id="emptyState" style="display:none">
+        <div style="font-size:34px;margin-bottom:8px">📭</div><div>沒有符合的品項</div>
+      </div>
+    </div>
+
+    <div class="add-panel">
+      <div class="add-panel-label">快速新增飲料</div>
+      <div class="add-grid" id="quickAddRow"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ 販售資料頁面 ══ -->
+<div id="page-sales" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;flex-direction:column;overflow:hidden;background:var(--bg)"></div>
+</div><!-- end page-container -->
+
+<!-- 新增銷售 Modal -->
+<div class="modal-overlay" id="saleModal" onclick="if(event.target===this)closeModal('saleModal')">
+  <div class="modal">
+    <div class="modal-title" id="saleModalTitle">新增銷售記錄</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px">
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">販售日期</label>
+        <input id="sl_date" type="date"></div>
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">倉道號碼</label>
+        <select id="sl_slot"></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px">
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">飲料品項</label>
+        <select id="sl_item"></select></div>
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">販售數量</label>
+        <input id="sl_qty" type="number" min="1" placeholder="1"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px">
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">販售單價（元）</label>
+        <input id="sl_price" type="number" min="0" placeholder="25"></div>
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">採購單價（元）</label>
+        <input id="sl_cost" type="number" min="0" placeholder="20"></div>
+    </div>
+    <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">備註</label>
+      <input id="sl_note" placeholder="選填"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('saleModal')">取消</button>
+      <button class="btn btn-primary" id="saleConfirmBtn" onclick="confirmAddSale()">新增記錄</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="storeModal" onclick="if(event.target===this)closeModal('storeModal')">
+  <div class="modal">
+    <div class="modal-title">新增採購通路</div>
+    <div class="mrow"><label>通路名稱</label><input id="sm_name" placeholder="例：家樂福、蝦皮購物" type="text"></div>
+    <div class="mrow"><label>通路類型</label>
+      <div class="type-row">
+        <button class="type-pill selected" data-t="量販店" onclick="selType(this,'store')">🏬 量販店</button>
+        <button class="type-pill" data-t="超市" onclick="selType(this,'store')">🛍 超市</button>
+        <button class="type-pill" data-t="電商平台" onclick="selType(this,'store')">🛒 電商平台</button>
+        <button class="type-pill" data-t="實體賣場" onclick="selType(this,'store')">🏪 實體賣場</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('storeModal')">取消</button>
+      <button class="btn btn-primary" onclick="confirmAddStore()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增廠商 -->
+<div class="modal-overlay" id="mfrModal" onclick="if(event.target===this)closeModal('mfrModal')">
+  <div class="modal">
+    <div class="modal-title">新增飲料廠商</div>
+    <div class="mrow"><label>廠商名稱</label><input id="mm_name" placeholder="例：統一企業、可口可樂" type="text"></div>
+    <div class="mrow"><label>廠商類型</label>
+      <div class="type-row">
+        <button class="type-pill sel-purple" data-t="飲料大廠" onclick="selType(this,'mfr')">🏭 飲料大廠</button>
+        <button class="type-pill" data-t="茶飲專門" onclick="selType(this,'mfr')">🍵 茶飲專門</button>
+        <button class="type-pill" data-t="進口品牌" onclick="selType(this,'mfr')">🌏 進口品牌</button>
+        <button class="type-pill" data-t="其他" onclick="selType(this,'mfr')">🏷 其他</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('mfrModal')">取消</button>
+      <button class="btn btn-primary" onclick="confirmAddMfr()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/編輯飲料 -->
+<div class="modal-overlay" id="itemModal" onclick="if(event.target===this)closeModal('itemModal')">
+  <div class="modal">
+    <div class="modal-title" id="itemModalTitle">新增飲料品項</div>
+    <!-- 基本資訊 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px">
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">飲料名稱</label>
+        <input id="im_name" placeholder="例：可口可樂 330ml"></div>
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">類別</label>
+        <select id="im_cat"><option>碳酸飲料</option><option>茶飲</option><option>咖啡</option><option>果汁</option><option>能量飲料</option><option>水</option><option>其他</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 80px 80px;gap:10px;margin-bottom:11px">
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">飲料廠商</label>
+        <select id="im_mfr"><option value="">（未指定）</option></select></div>
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">倉道號碼</label>
+        <select id="im_slot" style="text-align:center;font-weight:700;font-family:var(--mono)"></select></div>
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">庫存</label>
+        <input id="im_qty" type="number" placeholder="0" min="0" step="1"></div>
+    </div>
+    <!-- 進貨 & 效期 -->
+    <hr class="modal-divider">
+    <div class="sec-head"><span class="sec-dot" style="background:var(--info)"></span>進貨與效期資訊</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:10px;margin-bottom:11px">
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">進貨日期</label>
+        <input id="im_restock" type="date"></div>
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">商品效期</label>
+        <input id="im_expiry" type="date"></div>
+      <div><label style="display:block;font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">警示天數</label>
+        <input id="im_warn" type="number" min="1" max="180" value="30" placeholder="30"></div>
+    </div>
+    <!-- 採購通路報價 -->
+    <hr class="modal-divider">
+    <div class="sec-head"><span class="sec-dot" style="background:var(--accent)"></span>各採購通路售價（元/件）</div>
+    <div class="price-grid" id="itemPriceGrid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('itemModal')">取消</button>
+      <button class="btn btn-primary" id="itemConfirmBtn" onclick="confirmAddItem()">新增品項</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// ══ Firebase 初始化 ══
+const firebaseConfig = {
+  apiKey: "AIzaSyB1SyDsGq_aLAu4FBTEMikhsN-I-OXAWlM",
+  authDomain: "rental-manager-c9ef5.firebaseapp.com",
+  databaseURL: "https://rental-manager-c9ef5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rental-manager-c9ef5",
+  storageBucket: "rental-manager-c9ef5.firebasestorage.app",
+  messagingSenderId: "976625718872",
+  appId: "1:976625718872:web:21403f89a3f4eb6bac5c2d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ══ Firebase 讀寫函數 ══
+function fbSave(path, data){ db.ref(path).set(data); }
+function fbSaveAll(){
+  const toObj = arr => arr.reduce((o,x)=>{o[x.id]=x;return o;},{});
+  const data = {
+    items:         toObj(items),
+    stores:        stores.reduce((o,s,i)=>{o[i]=s;return o;},{}),
+    manufacturers: manufacturers.reduce((o,m,i)=>{o[i]=m;return o;},{}),
+    sales:         toObj(sales),
+  };
+  console.log('💾 寫入 Firebase...', Object.keys(data.items).length, '筆品項');
+  db.ref('vending').set(data)
+    .then(()=>{ console.log('✅ Firebase 寫入成功'); showSyncStatus('☁ 已同步','var(--accent)'); })
+    .catch(e=>{ console.error('❌ Firebase 寫入失敗:', e); showSyncStatus('❌ 同步失敗','var(--danger)'); });
+}
+function fbLoad(callback){
+  db.ref('vending').once('value', snap=>{
+    const d = snap.val();
+    if(d){
+      // Firebase 會把陣列轉成物件，需轉回陣列
+      if(d.items)         d.items         = Object.values(d.items);
+      if(d.stores)        d.stores        = Object.values(d.stores);
+      if(d.manufacturers) d.manufacturers = Object.values(d.manufacturers);
+      if(d.sales)         d.sales         = Object.values(d.sales);
+      callback(d);
+    } else {
+      callback(null);
+    }
+  });
+}
+
+// 同步狀態提示
+function showSyncStatus(msg, color='var(--accent)'){
+  const el=document.getElementById('syncStatus');
+  if(el){ el.textContent=msg; el.style.color=color; }
+}
+const STORE_COLORS=['#4ade80','#60a5fa','#fbbf24','#f472b6','#34d399','#fb923c','#38bdf8','#a3e635'];
+const MFR_COLORS=['#a78bfa','#c084fc','#e879f9','#f472b6','#818cf8','#7dd3fc'];
+const STORE_ICONS={'量販店':'🏬','超市':'🛍','電商平台':'🛒','實體賣場':'🏪'};
+const MFR_ICONS={'飲料大廠':'🏭','茶飲專門':'🍵','進口品牌':'🌏','其他':'🏷'};
+
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+function todayStr(){ return TODAY.toISOString().slice(0,10); }
+function daysUntil(dateStr){ if(!dateStr)return null; const d=new Date(dateStr);d.setHours(0,0,0,0);return Math.floor((d-TODAY)/86400000); }
+function fmtDate(s){ if(!s)return ''; const[y,m,d]=s.split('-');return`${y}/${m}/${d}`; }
+
+let stores=[
+  {name:'家樂福',type:'量販店'},
+  {name:'大潤發',type:'量販店'},
+  {name:'全聯',type:'超市'},
+  {name:'蝦皮購物',type:'電商平台'},
+];
+let manufacturers=[
+  {name:'可口可樂',type:'進口品牌'},
+  {name:'金車',type:'飲料大廠'},
+  {name:'泰山企業',type:'飲料大廠'},
+  {name:'統一企業',type:'飲料大廠'},
+  {name:'愛之味',type:'飲料大廠'},
+  {name:'樂天',type:'進口品牌'},
+  {name:'伊藤園',type:'進口品牌'},
+  {name:'紅牛',type:'進口品牌'},
+];
+
+// Generate sample dates relative to today
+function daysFromNow(n){const d=new Date(TODAY);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function daysAgo(n){return daysFromNow(-n);}
+
+let items=[
+  {id:1, name:'海鹽沙士 330ml',        cat:'碳酸飲料', mfr:'泰山企業', slot:'1',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:2, name:'可口可樂 330ml',         cat:'碳酸飲料', mfr:'可口可樂', slot:'2',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:3, name:'百事可樂 330ml',         cat:'碳酸飲料', mfr:'',         slot:'3',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:4, name:'雪碧 330ml',             cat:'碳酸飲料', mfr:'可口可樂', slot:'4',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:5, name:'白葡萄氣泡飲 330ml',    cat:'碳酸飲料', mfr:'',         slot:'5',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:6, name:'樹頂蘋果汁 320ml',      cat:'果汁',     mfr:'',         slot:'6',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:7, name:'泰山仙草蜜 330ml',        cat:'茶飲',     mfr:'泰山企業', slot:'7',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:8, name:'伯朗咖啡(咖) 240ml',    cat:'咖啡',     mfr:'金車',     slot:'8',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:9, name:'伯朗咖啡(藍) 240ml',    cat:'咖啡',     mfr:'金車',     slot:'9',  qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:10,name:'伯朗咖啡(綠) 240ml',    cat:'咖啡',     mfr:'金車',     slot:'10', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:11,name:'樂天優格飲(原味) 250ml',cat:'其他',     mfr:'樂天',     slot:'11', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:12,name:'麥香奶茶 340ml',         cat:'茶飲',     mfr:'統一企業', slot:'12', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:13,name:'八寶粥 330ml',             cat:'其他',     mfr:'愛之味',   slot:'13', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:14,name:'牛奶花生 170ml',            cat:'其他',     mfr:'愛之味',   slot:'14', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:15,name:'冬瓜露 330ml',           cat:'茶飲',     mfr:'',         slot:'15', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:16,name:'健酪(藍) 320ml',         cat:'其他',     mfr:'',         slot:'16', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:17,name:'健酪(紅) 320ml',         cat:'其他',     mfr:'',         slot:'17', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:18,name:'維他露P',                cat:'碳酸飲料', mfr:'',         slot:'18', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:19,name:'紅牛 250ml',             cat:'能量飲料', mfr:'紅牛',     slot:'19', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:20,name:'蠻牛(黃) 250ml',         cat:'能量飲料', mfr:'',         slot:'20', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:21,name:'蠻牛(白) 250ml',         cat:'能量飲料', mfr:'',         slot:'21', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:22,name:'伊藤園無糖綠茶 530ml',  cat:'茶飲',     mfr:'伊藤園',   slot:'22', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:23,name:'動元素 600ml',           cat:'其他',     mfr:'',         slot:'23', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:24,name:'舒跑 590ml',             cat:'其他',     mfr:'',         slot:'24', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:25,name:'愛之味麥仔茶 590ml',    cat:'茶飲',     mfr:'愛之味',   slot:'25', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:26,name:'奧利多水 585ml',         cat:'其他',     mfr:'',         slot:'26', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:27,name:'泰山冰鎮芭樂綠 535ml',  cat:'茶飲',     mfr:'泰山企業', slot:'27', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:28,name:'泰山冰鎮檸檬 535ml',    cat:'茶飲',     mfr:'泰山企業', slot:'28', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:29,name:'蜜桃紅茶 535ml',         cat:'茶飲',     mfr:'',         slot:'29', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:30,name:'蘋果紅茶 535ml',         cat:'茶飲',     mfr:'',         slot:'30', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:31,name:'原萃玉露 580ml',         cat:'茶飲',     mfr:'',         slot:'31', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:32,name:'特上紅茶 550ml',         cat:'茶飲',     mfr:'',         slot:'32', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:33,name:'茶裏王(黃) 600ml',       cat:'茶飲',     mfr:'統一企業', slot:'33', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:34,name:'麥香阿薩姆紅茶 600ml',  cat:'茶飲',     mfr:'統一企業', slot:'34', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:35,name:'麥香阿薩姆奶茶 600ml',  cat:'茶飲',     mfr:'統一企業', slot:'35', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:36,name:'原萃日式綠茶 580ml',    cat:'茶飲',     mfr:'',         slot:'36', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:37,name:'悅氏礦泉水 600ml',      cat:'水',       mfr:'泰山企業', slot:'37', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:38,name:'悅氏礦泉水 600ml',      cat:'水',       mfr:'泰山企業', slot:'38', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:39,name:'黑松純水 580ml',         cat:'水',       mfr:'',         slot:'39', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:40,name:'悅氏礦泉水 600ml',      cat:'水',       mfr:'泰山企業', slot:'40', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:41,name:'悅氏礦泉水 600ml',      cat:'水',       mfr:'泰山企業', slot:'41', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+  {id:42,name:'悅氏礦泉水 600ml',      cat:'水',       mfr:'泰山企業', slot:'42', qty:0, restock:'', expiry:'', warnDays:30, prices:{'家樂福':null,'大潤發':null,'全聯':null,'蝦皮購物':null}},
+];
+let nextId=43;
+let currentCat='全部';
+let filterStore='';
+let filterMfr='';
+let filterExpOnly=false;
+
+const cats=['全部','碳酸飲料','茶飲','咖啡','果汁','能量飲料','水','其他'];
+
+function sc(i){return STORE_COLORS[i%STORE_COLORS.length];}
+function mc(i){return MFR_COLORS[i%MFR_COLORS.length];}
+function storeIdx(n){return stores.findIndex(s=>s.name===n);}
+function mfrIdx(n){return manufacturers.findIndex(m=>m.name===n);}
+function vp(item){return stores.map(s=>(item.prices||{})[s.name]).filter(p=>p!=null&&p>0);}
+function bp(item){const v=vp(item);return v.length?Math.min(...v):null;}
+function wp(item){const v=vp(item);return v.length?Math.max(...v):null;}
+function bstores(item){const b=bp(item);return b==null?[]:stores.filter(s=>(item.prices||{})[s.name]===b).map(s=>s.name);}
+function saving(item){const b=bp(item),w=wp(item);return(b!=null&&w!=null&&b!==w)?w-b:0;}
+
+function expiryStatus(item){
+  const days=daysUntil(item.expiry);
+  if(days===null) return {cls:'none',label:'未設定',days:null};
+  const warn=item.warnDays||30;
+  if(days<0)  return {cls:'expired',label:'已過期',days};
+  if(days===0) return {cls:'expired',label:'今天到期',days};
+  if(days<=7)  return {cls:'urgent',label:`剩 ${days} 天`,days};
+  if(days<=warn) return {cls:'soon',label:`剩 ${days} 天`,days};
+  return {cls:'ok',label:`剩 ${days} 天`,days};
+}
+
+function isExpiring(item){
+  const s=expiryStatus(item);
+  return s.cls==='expired'||s.cls==='urgent'||s.cls==='soon';
+}
+
+function filtered(){
+  const q=(document.getElementById('searchInput')?.value||'').trim().toLowerCase();
+  let d=items.filter(i=>currentCat==='全部'||i.cat===currentCat);
+  if(q) d=d.filter(i=>i.name.toLowerCase().includes(q));
+  if(filterStore) d=d.filter(i=>i.prices[filterStore]!=null);
+  if(filterMfr) d=d.filter(i=>i.mfr===filterMfr);
+  if(filterExpOnly) d=d.filter(i=>isExpiring(i));
+  const s=document.getElementById('sortSel')?.value||'slot_asc';
+  return d.sort((a,b)=>{
+    if(s==='slot_asc') return (parseInt(a.slot)||0)-(parseInt(b.slot)||0);
+    if(s==='name') return a.name.localeCompare(b.name,'zh-Hant');
+    if(s==='exp_asc'){
+      const da=daysUntil(a.expiry)??9999,db=daysUntil(b.expiry)??9999;
+      return da-db;
+    }
+    if(s==='best_asc') return(bp(a)??999)-(bp(b)??999);
+    if(s==='best_desc') return(bp(b)??0)-(bp(a)??0);
+    if(s==='save_desc') return saving(b)-saving(a);
+    if(s==='qty_asc') return a.qty-b.qty;
+    if(s==='qty_desc') return b.qty-a.qty;
+    return 0;
+  });
+}
+
+function renderSidebar(){
+  document.getElementById('catList').innerHTML=cats.map(c=>{
+    const cnt=c==='全部'?items.length:items.filter(i=>i.cat===c).length;
+    return`<button class="cat-btn ${c===currentCat?'active':''}" onclick="setCat('${c}')">${c}<span class="cat-count">${cnt}</span></button>`;
+  }).join('');
+
+  // Expiry alerts
+  const alertItems=items
+    .map(i=>({item:i,st:expiryStatus(i)}))
+    .filter(({st})=>st.cls!=='ok'&&st.cls!=='none')
+    .sort((a,b)=>(a.st.days??9999)-(b.st.days??9999));
+
+  if(alertItems.length===0){
+    document.getElementById('expiryPanel').innerHTML=`<div class="no-exp">✅ 目前無快過期品項</div>`;
+  } else {
+    document.getElementById('expiryPanel').innerHTML=alertItems.map(({item,st})=>`
+      <div class="exp-item ${st.cls}" onclick="highlightItem(${item.id})" title="${item.name}">
+        <span class="exp-name">${item.name}</span>
+        <span class="exp-days ${st.cls}">${st.label}</span>
+      </div>`).join('');
+  }
+
+  document.getElementById('storeList').innerHTML=stores.map((s,i)=>`
+    <div class="chip store-chip">
+      <div class="chip-left"><span class="chip-dot" style="background:${sc(i)}"></span>
+        <div class="chip-info"><div class="chip-name">${s.name}</div><div class="chip-sub">${STORE_ICONS[s.type]||'🏷'} ${s.type}</div></div>
+      </div>
+      <button class="chip-rm" onclick="removeStore('${s.name}')">×</button>
+    </div>`).join('');
+
+  document.getElementById('mfrList').innerHTML=manufacturers.map((m,i)=>`
+    <div class="chip mfr-chip">
+      <div class="chip-left"><span class="chip-dot" style="background:${mc(i)}"></span>
+        <div class="chip-info"><div class="chip-name">${m.name}</div><div class="chip-sub">${MFR_ICONS[m.type]||'🏷'} ${m.type}</div></div>
+      </div>
+      <button class="chip-rm" onclick="removeMfr('${m.name}')">×</button>
+    </div>`).join('');
+}
+
+function renderFilterBar(){
+  const storePills=stores.map((s,i)=>`
+    <button class="fpill ${filterStore===s.name?'active-store':''}" onclick="toggleF('store','${s.name}')">
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:${sc(i)};display:inline-block"></span>${s.name}</span>
+    </button>`).join('');
+  const mfrPills=manufacturers.map((m,i)=>`
+    <button class="fpill ${filterMfr===m.name?'active-mfr':''}" onclick="toggleF('mfr','${m.name}')">
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:${mc(i)};display:inline-block"></span>${m.name}</span>
+    </button>`).join('');
+  const expCount=items.filter(i=>isExpiring(i)).length;
+  document.getElementById('filterBar').innerHTML=`
+    <span class="filter-label">通路：</span>${storePills}
+    <div class="divider-v"></div>
+    <span class="filter-label">廠商：</span>${mfrPills}
+    <div class="divider-v"></div>
+    <button class="fpill ${filterExpOnly?'active-exp':''}" onclick="toggleF('exp','')">
+      ⚠ 快過期 ${expCount>0?`(${expCount})`:''}
+    </button>
+  `;
+}
+
+function renderStats(){
+  const d=filtered();
+  const totalSave=d.reduce((s,i)=>s+saving(i)*i.qty,0);
+  const missing=d.filter(i=>stores.some(s=>i.prices[s.name]==null)).length;
+  const low=d.filter(i=>i.qty<=5&&i.qty>0).length;
+  const expired=items.filter(i=>{const s=expiryStatus(i);return s.cls==='expired';}).length;
+  const expiring=items.filter(i=>isExpiring(i)).length;
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat-card"><div class="stat-label">飲料品項</div><div class="stat-value">${d.length}</div></div>
+    <div class="stat-card"><div class="stat-label">缺查價品項</div><div class="stat-value ${missing>0?'sv-warn':''}">${missing}</div><div class="stat-sub">有通路未填報價</div></div>
+    <div class="stat-card"><div class="stat-label">庫存偏低</div><div class="stat-value ${low>0?'sv-danger':''}">${low}</div><div class="stat-sub">≤5件需補貨</div></div>
+    <div class="stat-card clickable" onclick="toggleF('exp','')" title="點擊篩選快過期品項">
+      <div class="stat-label">⚠ 效期警示</div>
+      <div class="stat-value ${expiring>0?'sv-warn':''}">${expiring}</div>
+      <div class="stat-sub">${expired>0?`含 ${expired} 件已過期`:'點擊篩選'}</div>
+    </div>
+    <div class="stat-card"><div class="stat-label">最低價採購可省</div><div class="stat-value sv-green">$${totalSave.toLocaleString()}</div><div class="stat-sub">依現有庫存計算</div></div>
+  `;
+}
+
+function renderTable(){
+  const d=filtered();
+  document.getElementById('pageTitle').textContent=
+    filterExpOnly?'⚠ 快過期品項':filterMfr?`${filterMfr} 的飲料`:filterStore?`在 ${filterStore} 有售`:currentCat==='全部'?'全部飲料':currentCat;
+
+  document.getElementById('tableHead').innerHTML=`<tr>
+    <th style="min-width:55px;background:#121a12">倉道</th>
+    <th style="min-width:145px">飲料名稱</th>
+    <th style="min-width:65px">類別</th>
+    <th style="min-width:90px;background:rgba(167,139,250,0.07)">飲料廠商</th>
+    ${stores.map((s,i)=>`<th style="min-width:82px"><span style="display:inline-flex;align-items:center;gap:4px">
+      <span style="width:6px;height:6px;border-radius:50%;background:${sc(i)};display:inline-block"></span>${s.name}</span></th>`).join('')}
+    <th style="min-width:70px">最低價</th>
+    <th style="min-width:95px">建議通路</th>
+    <th style="min-width:90px">差價分析</th>
+    <th style="min-width:100px;background:#1a1520">進貨日期</th>
+    <th style="min-width:110px;background:#1a1520">商品效期</th>
+    <th style="min-width:45px">庫存</th>
+    <th style="min-width:60px"></th>
+  </tr>`;
+
+  const empty=document.getElementById('emptyState');
+  const tbody=document.getElementById('tableBody');
+  if(!d.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+
+  tbody.innerHTML=d.map(item=>{
+    const b=bp(item),w=wp(item),sv=saving(item),bs=bstores(item);
+    const mi=mfrIdx(item.mfr);
+    const mfrBadge=item.mfr
+      ?`<span class="badge-mfr"><span style="width:6px;height:6px;border-radius:50%;background:${mi>=0?mc(mi):'var(--text3)'};display:inline-block"></span>${item.mfr}</span>`
+      :`<span style="color:var(--text3);font-size:11px">—</span>`;
+    const pcs=stores.map(s=>{
+      const p=(item.prices||{})[s.name];
+      if(p==null)return`<td class="pc none">—</td>`;
+      const isBest=p===b&&b!=null,isWorst=p===w&&w!=null&&b!==w;
+      return`<td class="pc ${isBest?'best':isWorst?'worst':''}">$${p}${isBest?`<span class="best-tag">最低</span>`:''}</td>`;
+    }).join('');
+    const badges=bs.map(n=>`<span class="store-badge"><span style="width:6px;height:6px;border-radius:50%;background:${sc(storeIdx(n))};display:inline-block"></span>${n}</span>`).join(' ');
+    const est=expiryStatus(item);
+    const expIcon={'expired':'💀','urgent':'🔥','soon':'⏳','ok':'✅','none':''}[est.cls]||'';
+    const rowCls=est.cls==='expired'?'row-expired':est.cls==='urgent'?'row-urgent':'';
+
+    return`<tr class="${rowCls}" id="item-row-${item.id}">
+      <td style="background:rgba(74,222,128,0.04);text-align:center">
+        ${item.slot
+          ?`<span style="display:inline-block;font-family:var(--mono);font-size:13px;font-weight:700;padding:3px 8px;border-radius:5px;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border);letter-spacing:.04em">${item.slot}</span>`
+          :`<span style="color:var(--text3);font-size:11px">—</span>`}
+      </td>
+      <td class="td-name">${item.name}</td>
+      <td><span class="badge-cat">${item.cat}</span></td>
+      <td>${mfrBadge}</td>
+      ${pcs}
+      <td class="pc best">${b!=null?'$'+b:'<span class="pc none">未查價</span>'}</td>
+      <td>${b!=null?badges:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+      <td>${sv>0?`<div class="save-main">省 $${sv}/件</div><div class="save-sub">×${item.qty}件=$${sv*item.qty}</div>`:'<span style="color:var(--text3);font-size:11px">同價</span>'}</td>
+      <td class="exp-cell" style="background:rgba(167,139,250,0.03)">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text2)">${item.restock?fmtDate(item.restock):'<span style="color:var(--text3)">未記錄</span>'}</span>
+      </td>
+      <td class="exp-cell" style="background:rgba(167,139,250,0.03)">
+        ${item.expiry
+          ?`<span class="exp-badge ${est.cls}">${expIcon} ${est.label}</span>
+            <span class="exp-date">${fmtDate(item.expiry)}</span>`
+          :`<span class="exp-badge none">未設定</span>`}
+      </td>
+      <td class="${item.qty<=5?'qty-low':'qty-ok'}">${item.qty}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="openEditModal(${item.id})" title="編輯">✏</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="removeItem(${item.id})" title="刪除">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderQuickAdd(){
+  const mfrOpts=`<option value="">（未指定）</option>`+manufacturers.map(m=>`<option>${m.name}</option>`).join('');
+  document.getElementById('quickAddRow').innerHTML=`
+    <div class="ag grow"><label>飲料名稱</label><input id="qa_name" placeholder="可口可樂 330ml"></div>
+    <div class="ag mid"><label>類別</label><select id="qa_cat"><option>碳酸飲料</option><option>茶飲</option><option>咖啡</option><option>果汁</option><option>能量飲料</option><option>水</option><option>其他</option></select></div>
+    <div class="ag mid"><label>飲料廠商</label><select id="qa_mfr">${mfrOpts}</select></div>
+    <div class="ag short"><label>庫存</label><input id="qa_qty" type="number" min="0" placeholder="0"></div>
+    <div class="ag short"><label>倉道號碼</label><select id="qa_slot"></select></div>
+    <div class="ag date"><label>進貨日期</label><input id="qa_restock" type="date" value="${todayStr()}"></div>
+    <div class="ag date"><label>商品效期</label><input id="qa_expiry" type="date"></div>
+    ${stores.map((s,i)=>`<div class="ag short"><label><span style="width:6px;height:6px;border-radius:50%;background:${sc(i)};display:inline-block"></span>${s.name}</label>
+      <input id="qa_${key(s.name)}" type="number" min="0" placeholder="$"></div>`).join('')}
+    <div class="ag" style="padding-top:18px"><button class="btn btn-primary" onclick="quickAdd()">＋ 新增</button></div>
+  `;
+  // 填入倉道選單
+  const slotOpts='<option value="">—</option>'+Array.from({length:42},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  document.getElementById('qa_slot').innerHTML=slotOpts;
+}
+
+function render(){renderSidebar();renderFilterBar();renderStats();renderTable();}
+
+function key(n){return n.replace(/[\s\/\(\)]/g,'_');}
+function setCat(c){currentCat=c;render();}
+function toggleF(type,val){
+  if(type==='store')filterStore=filterStore===val?'':val;
+  else if(type==='mfr')filterMfr=filterMfr===val?'':val;
+  else if(type==='exp')filterExpOnly=!filterExpOnly;
+  render();
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function highlightItem(id){
+  filterExpOnly=false;currentCat='全部';filterStore='';filterMfr='';
+  render();
+  setTimeout(()=>{
+    const row=document.getElementById('item-row-'+id);
+    if(row){row.scrollIntoView({behavior:'smooth',block:'center'});
+      row.style.outline='2px solid var(--warn)';
+      setTimeout(()=>row.style.outline='',2000);}
+  },100);
+}
+
+// Store modal
+function selType(el,kind){
+  const sel=kind==='mfr'?'sel-purple':'selected';
+  el.closest('.type-row').querySelectorAll('.type-pill').forEach(p=>{p.classList.remove('selected','sel-purple');});
+  el.classList.add(sel);
+}
+function openAddStoreModal(){
+  document.getElementById('sm_name').value='';
+  document.querySelectorAll('#storeModal .type-pill').forEach((p,i)=>{p.classList.remove('selected','sel-purple');if(i===0)p.classList.add('selected');});
+  document.getElementById('storeModal').classList.add('open');
+  setTimeout(()=>document.getElementById('sm_name').focus(),100);
+}
+function confirmAddStore(){
+  const name=document.getElementById('sm_name').value.trim();
+  if(!name||stores.find(s=>s.name===name))return;
+  const type=document.querySelector('#storeModal .type-pill.selected')?.dataset.t||'其他';
+  stores.push({name,type});
+  items.forEach(i=>{if(i.prices[name]===undefined)i.prices[name]=null;});
+  closeModal('storeModal');renderQuickAdd();render();
+  notify(`已新增採購通路：${name}`);syncSave();
+}
+function removeStore(name){
+  if(stores.length<=1){notify('至少需要一個採購通路');return;}
+  if(filterStore===name)filterStore='';
+  stores=stores.filter(s=>s.name!==name);
+  renderQuickAdd();render();notify(`已移除通路：${name}`);syncSave();
+}
+
+// Mfr modal
+function openAddMfrModal(){
+  document.getElementById('mm_name').value='';
+  document.querySelectorAll('#mfrModal .type-pill').forEach((p,i)=>{p.classList.remove('selected','sel-purple');if(i===0)p.classList.add('sel-purple');});
+  document.getElementById('mfrModal').classList.add('open');
+  setTimeout(()=>document.getElementById('mm_name').focus(),100);
+}
+function confirmAddMfr(){
+  const name=document.getElementById('mm_name').value.trim();
+  if(!name||manufacturers.find(m=>m.name===name))return;
+  const type=document.querySelector('#mfrModal .type-pill.sel-purple')?.dataset.t||'其他';
+  manufacturers.push({name,type});
+  closeModal('mfrModal');renderQuickAdd();render();
+  notify(`已新增飲料廠商：${name}`);syncSave();
+}
+function removeMfr(name){
+  if(filterMfr===name)filterMfr='';
+  manufacturers=manufacturers.filter(m=>m.name!==name);
+  items.forEach(i=>{if(i.mfr===name)i.mfr='';});
+  renderQuickAdd();render();notify(`已移除廠商：${name}`);syncSave();
+}
+
+// Item modal
+function buildPriceGrid(getVal){
+  document.getElementById('itemPriceGrid').innerHTML=stores.map((s,i)=>`
+    <div class="pgi">
+      <label><span style="width:7px;height:7px;border-radius:50%;background:${sc(i)};display:inline-block"></span>${STORE_ICONS[s.type]||'🏷'} ${s.name}</label>
+      <input id="im_p_${key(s.name)}" type="number" min="0" placeholder="未查價" value="${getVal?.(s.name)??''}">
+    </div>`).join('');
+}
+function getPrices(){
+  const p={};
+  stores.forEach(s=>{const el=document.getElementById('im_p_'+key(s.name));const v=el?parseFloat(el.value):NaN;p[s.name]=(!isNaN(v)&&v>0)?v:null;});
+  return p;
+}
+function refreshMfrSelect(selVal){
+  document.getElementById('im_mfr').innerHTML=`<option value="">（未指定）</option>`+manufacturers.map(m=>`<option ${m.name===selVal?'selected':''}>${m.name}</option>`).join('');
+}
+function openAddItemModal(){
+  document.getElementById('itemModalTitle').textContent='新增飲料品項';
+  document.getElementById('itemConfirmBtn').textContent='新增品項';
+  document.getElementById('im_name').value='';
+  document.getElementById('im_qty').value='';
+  document.getElementById('im_slot').value='';
+  document.getElementById('im_restock').value=todayStr();
+  document.getElementById('im_expiry').value='';
+  document.getElementById('im_warn').value='30';
+  refreshMfrSelect('');
+  buildPriceGrid(null);
+  document.getElementById('itemConfirmBtn').onclick=confirmAddItem;
+  document.getElementById('itemModal').classList.add('open');
+  setTimeout(()=>document.getElementById('im_name').focus(),100);
+}
+function confirmAddItem(){
+  const name=document.getElementById('im_name').value.trim();
+  if(!name){document.getElementById('im_name').focus();return;}
+  items.push({id:nextId++,name,
+    cat:document.getElementById('im_cat').value,
+    mfr:document.getElementById('im_mfr').value,
+    slot:document.getElementById('im_slot').value,
+    qty:parseInt(document.getElementById('im_qty').value)||0,
+    restock:document.getElementById('im_restock').value||'',
+    expiry:document.getElementById('im_expiry').value||'',
+    warnDays:parseInt(document.getElementById('im_warn').value)||30,
+    prices:getPrices()
+  });
+  closeModal('itemModal');renderQuickAdd();render();notify(`已新增：${name}`);syncSave();
+}
+function openEditModal(id){
+  const item=items.find(i=>i.id===id);if(!item)return;
+  document.getElementById('itemModalTitle').textContent='編輯飲料品項';
+  document.getElementById('im_name').value=item.name;
+  document.getElementById('im_cat').value=item.cat;
+  document.getElementById('im_qty').value=item.qty;
+  document.getElementById('im_restock').value=item.restock||'';
+  document.getElementById('im_expiry').value=item.expiry||'';
+  document.getElementById('im_warn').value=item.warnDays||30;
+  document.getElementById('im_slot').value=item.slot||'';
+  refreshMfrSelect(item.mfr);
+  buildPriceGrid(n=>(item.prices&&item.prices[n]!=null)?item.prices[n]:'');
+  document.getElementById('itemConfirmBtn').textContent='儲存';
+  document.getElementById('itemConfirmBtn').onclick=()=>{
+    item.name=document.getElementById('im_name').value.trim()||item.name;
+    item.cat=document.getElementById('im_cat').value;
+    item.mfr=document.getElementById('im_mfr').value;
+    item.slot=document.getElementById('im_slot').value;
+    item.qty=parseInt(document.getElementById('im_qty').value)||0;
+    item.restock=document.getElementById('im_restock').value||'';
+    item.expiry=document.getElementById('im_expiry').value||'';
+    item.warnDays=parseInt(document.getElementById('im_warn').value)||30;
+    if(!item.prices) item.prices = {};
+    Object.assign(item.prices, getPrices());
+    closeModal('itemModal');render();notify('已更新');fbSaveAll();showSyncStatus('☁ 儲存中…','var(--warn)');setTimeout(()=>showSyncStatus('☁ 已同步','var(--text3)'),1200);
+  };
+  document.getElementById('itemModal').classList.add('open');
+}
+function removeItem(id){const item=items.find(i=>i.id===id);items=items.filter(i=>i.id!==id);render();notify(`已刪除：${item?.name}`);syncSave();}
+
+function quickAdd(){
+  const name=document.getElementById('qa_name').value.trim();
+  if(!name){document.getElementById('qa_name').focus();return;}
+  const prices={};
+  stores.forEach(s=>{const el=document.getElementById('qa_'+key(s.name));const v=el?parseFloat(el.value):NaN;prices[s.name]=(!isNaN(v)&&v>0)?v:null;});
+  items.push({id:nextId++,name,
+    cat:document.getElementById('qa_cat').value,
+    mfr:document.getElementById('qa_mfr').value,
+    slot:document.getElementById('qa_slot').value,
+    qty:parseInt(document.getElementById('qa_qty').value)||0,
+    restock:document.getElementById('qa_restock').value||'',
+    expiry:document.getElementById('qa_expiry').value||'',
+    warnDays:30,
+    prices
+  });
+  renderQuickAdd();render();notify(`已新增：${name}`);syncSave();
+}
+
+function exportCSV(){
+  const d=filtered(),snames=stores.map(s=>s.name);
+  const rows=[['飲料名稱','類別','飲料廠商','倉道號碼','庫存','進貨日期','商品效期','剩餘天數','效期狀態',...snames,'最低價','建議採購通路','每件差價','依庫存可省']];
+  d.forEach(item=>{
+    const b=bp(item),sv=saving(item),bs=bstores(item),est=expiryStatus(item);
+    rows.push([item.name,item.cat,item.mfr||'',item.slot||'',item.qty,
+      item.restock||'',item.expiry||'',est.days??'',est.label,
+      ...snames.map(n=>item.prices[n]??''),
+      b??'',bs.join('/'),sv>0?sv:'',sv>0?sv*item.qty:'']);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='採購比價表.csv';a.click();notify('CSV 已匯出');
+}
+
+let nt;
+function notify(msg){const el=document.getElementById('notif');el.textContent='✓ '+msg;el.classList.add('show');clearTimeout(nt);nt=setTimeout(()=>el.classList.remove('show'),2500);}
+
+function buildSlotOptions(){
+  const opts='<option value="">—</option>'+Array.from({length:42},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  document.getElementById('im_slot').innerHTML=opts;
+}
+
+// ══ 販售資料 ══
+let sales=[
+  {id:1,date:daysFromNow(-3),slot:'2',itemName:'可口可樂 330ml',qty:5,price:25,cost:0,note:''},
+  {id:2,date:daysFromNow(-3),slot:'19',itemName:'紅牛 250ml',qty:2,price:65,cost:0,note:''},
+  {id:3,date:daysFromNow(-2),slot:'39',itemName:'黑松純水 580ml',qty:8,price:10,cost:0,note:''},
+  {id:4,date:daysFromNow(-2),slot:'12',itemName:'麥香奶茶 340ml',qty:4,price:25,cost:0,note:''},
+  {id:5,date:daysFromNow(-1),slot:'8',itemName:'伯朗咖啡(咖) 330ml',qty:3,price:25,cost:0,note:''},
+  {id:6,date:daysFromNow(-1),slot:'1',itemName:'海鹽沙士 330ml',qty:6,price:25,cost:0,note:''},
+];
+let nextSaleId=11;
+
+function switchPage(page){
+  const inv=document.getElementById('page-inventory');
+  const sal=document.getElementById('page-sales');
+
+  if(page==='inventory'){
+    inv.style.display='grid';
+    sal.style.display='none';
+  } else {
+    inv.style.display='none';
+    sal.style.display='flex';
+    if(!document.getElementById('salesStatsRow')){
+      const slotOpts='<option value="">全部倉道</option>'+Array.from({length:42},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+      sal.innerHTML=`
+        <div id="salesStatsRow" style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);flex-shrink:0"></div>
+        <div style="display:flex;gap:8px;padding:10px 20px;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center;flex-wrap:wrap;background:var(--bg)">
+          <span style="font-size:11px;color:var(--text3)">倉道：</span>
+          <select id="salesSlotFilter" onchange="renderSales()" style="width:90px">${slotOpts}</select>
+          <span style="font-size:11px;color:var(--text3);margin-left:4px">日期：</span>
+          <input type="date" id="salesDateFrom" onchange="renderSales()" style="width:130px">
+          <span style="font-size:11px;color:var(--text3)">～</span>
+          <input type="date" id="salesDateTo" onchange="renderSales()" style="width:130px">
+          <button class="btn btn-ghost btn-sm" onclick="clearSalesFilter()">清除篩選</button>
+          <select id="salesSort" onchange="renderSales()" style="width:auto;margin-left:auto">
+            <option value="date_desc">日期新→舊</option>
+            <option value="date_asc">日期舊→新</option>
+            <option value="qty_desc">數量多→少</option>
+            <option value="rev_desc">營收高→低</option>
+          </select>
+        </div>
+        <div style="flex:1;overflow:auto;min-height:0">
+          <table style="width:100%;border-collapse:collapse;min-width:800px">
+            <thead id="salesTableHead"></thead>
+            <tbody id="salesTableBody"></tbody>
+          </table>
+          <div id="salesEmptyState" style="display:none;text-align:center;padding:50px;color:var(--text3)">
+            <div style="font-size:34px;margin-bottom:8px">📊</div><div>尚無販售記錄</div>
+          </div>
+        </div>
+        <div class="add-panel" style="flex-shrink:0">
+          <div class="add-panel-label">快速新增銷售記錄</div>
+          <div class="add-grid" id="salesQuickAdd"></div>
+        </div>`;
+    }
+    buildSaleModalOpts();
+    renderSalesQuickAdd();
+    renderSales();
+  }
+
+  document.getElementById('header-actions-inventory').style.display=page==='inventory'?'flex':'none';
+  document.getElementById('header-actions-sales').style.display=page==='sales'?'flex':'none';
+  document.getElementById('nav-inventory').classList.toggle('active',page==='inventory');
+  document.getElementById('nav-sales').classList.toggle('active',page==='sales');
+}
+
+function buildSaleModalOpts(){
+  const slotOpts='<option value="">選擇倉道</option>'+Array.from({length:42},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  const slSlot=document.getElementById('sl_slot');if(slSlot)slSlot.innerHTML=slotOpts;
+  const fSlot=document.getElementById('salesSlotFilter');
+  if(fSlot)fSlot.innerHTML='<option value="">全部倉道</option>'+Array.from({length:42},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  const itemOpts='<option value="">選擇飲料</option>'+items.map(i=>`<option>${i.name}</option>`).join('');
+  const slItem=document.getElementById('sl_item');if(slItem)slItem.innerHTML=itemOpts;
+}
+
+function salesFiltered(){
+  const slot=document.getElementById('salesSlotFilter')?.value||'';
+  const from=document.getElementById('salesDateFrom')?.value||'';
+  const to=document.getElementById('salesDateTo')?.value||'';
+  const sort=document.getElementById('salesSort')?.value||'date_desc';
+  let d=[...sales];
+  if(slot) d=d.filter(s=>s.slot===slot);
+  if(from) d=d.filter(s=>s.date>=from);
+  if(to)   d=d.filter(s=>s.date<=to);
+  return d.sort((a,b)=>{
+    if(sort==='date_desc') return b.date.localeCompare(a.date);
+    if(sort==='date_asc')  return a.date.localeCompare(b.date);
+    if(sort==='qty_desc')  return b.qty-a.qty;
+    if(sort==='rev_desc')  return(b.qty*b.price)-(a.qty*a.price);
+    return 0;
+  });
+}
+
+function renderSalesStats(){
+  const d=salesFiltered();
+  const totalRev=d.reduce((s,r)=>s+r.qty*r.price,0);
+  const totalCost=d.reduce((s,r)=>s+r.qty*r.cost,0);
+  const totalQty=d.reduce((s,r)=>s+r.qty,0);
+  const profit=totalRev-totalCost;
+  const margin=totalRev>0?((profit/totalRev)*100).toFixed(1):0;
+  document.getElementById('salesStatsRow').innerHTML=`
+    <div class="stat-card"><div class="stat-label">銷售筆數</div><div class="stat-value">${d.length}</div></div>
+    <div class="stat-card"><div class="stat-label">總銷售量</div><div class="stat-value">${totalQty}<span style="font-size:13px;color:var(--text3)"> 件</span></div></div>
+    <div class="stat-card"><div class="stat-label">總營收</div><div class="stat-value sv-green">$${totalRev.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">總採購成本</div><div class="stat-value sv-warn">$${totalCost.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">毛利 / 毛利率</div>
+      <div class="stat-value ${profit>=0?'sv-green':'sv-danger'}">${profit>=0?'+':''}$${profit.toLocaleString()}</div>
+      <div class="stat-sub">${margin}%</div></div>
+  `;
+}
+
+function renderSalesTable(){
+  const d=salesFiltered();
+  document.getElementById('salesTableHead').innerHTML=`<tr>
+    <th style="min-width:100px">販售日期</th>
+    <th style="min-width:65px;text-align:center">倉道</th>
+    <th style="min-width:155px">飲料品項</th>
+    <th style="min-width:60px;text-align:right">數量</th>
+    <th style="min-width:80px;text-align:right">售價/件</th>
+    <th style="min-width:80px;text-align:right">成本/件</th>
+    <th style="min-width:85px;text-align:right">營收</th>
+    <th style="min-width:85px;text-align:right">成本</th>
+    <th style="min-width:85px;text-align:right">毛利</th>
+    <th style="min-width:65px;text-align:right">毛利率</th>
+    <th style="min-width:90px">備註</th>
+    <th style="min-width:60px"></th>
+  </tr>`;
+  const empty=document.getElementById('salesEmptyState');
+  const tbody=document.getElementById('salesTableBody');
+  if(!d.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=d.map(r=>{
+    const rev=r.qty*r.price,cost=r.qty*r.cost,profit=rev-cost;
+    const margin=rev>0?((profit/rev)*100).toFixed(1):0;
+    const pc=profit>0?'profit-pos':profit<0?'profit-neg':'profit-zero';
+    return`<tr>
+      <td style="font-family:var(--mono);font-size:12px;color:var(--text2)">${r.date}</td>
+      <td style="text-align:center">
+        <span style="display:inline-block;font-family:var(--mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)">${r.slot||'—'}</span>
+      </td>
+      <td style="font-weight:500">${r.itemName}</td>
+      <td style="font-family:var(--mono);text-align:right">${r.qty}</td>
+      <td style="font-family:var(--mono);text-align:right;color:var(--info)">$${r.price}</td>
+      <td style="font-family:var(--mono);text-align:right;color:var(--text2)">$${r.cost}</td>
+      <td style="font-family:var(--mono);text-align:right;color:var(--accent)">$${rev.toLocaleString()}</td>
+      <td style="font-family:var(--mono);text-align:right;color:var(--warn)">$${cost.toLocaleString()}</td>
+      <td class="${pc}" style="text-align:right">${profit>=0?'+':''}$${profit.toLocaleString()}</td>
+      <td class="${pc}" style="text-align:right">${margin}%</td>
+      <td style="color:var(--text3);font-size:12px">${r.note||'—'}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="openEditSaleModal(${r.id})" title="編輯">✏</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="removeSale(${r.id})" title="刪除">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSalesQuickAdd(){
+  const slotOpts='<option value="">倉道</option>'+Array.from({length:42},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  const itemOpts='<option value="">選擇飲料</option>'+items.map(i=>`<option>${i.name}</option>`).join('');
+  const el=document.getElementById('salesQuickAdd');
+  if(!el)return;
+  el.innerHTML=`
+    <div class="ag date"><label>日期</label><input id="qs_date" type="date" value="${todayStr()}"></div>
+    <div class="ag short"><label>倉道</label><select id="qs_slot">${slotOpts}</select></div>
+    <div class="ag grow"><label>飲料品項</label><select id="qs_item">${itemOpts}</select></div>
+    <div class="ag short"><label>數量</label><input id="qs_qty" type="number" min="1" placeholder="1"></div>
+    <div class="ag short"><label>售價</label><input id="qs_price" type="number" min="0" placeholder="$"></div>
+    <div class="ag short"><label>成本</label><input id="qs_cost" type="number" min="0" placeholder="$"></div>
+    <div class="ag mid"><label>備註</label><input id="qs_note" placeholder="選填"></div>
+    <div class="ag" style="padding-top:18px"><button class="btn btn-primary" onclick="quickAddSale()">＋ 新增</button></div>
+  `;
+}
+
+function renderSales(){renderSalesStats();renderSalesTable();}
+
+function clearSalesFilter(){
+  document.getElementById('salesSlotFilter').value='';
+  document.getElementById('salesDateFrom').value='';
+  document.getElementById('salesDateTo').value='';
+  renderSales();
+}
+
+function openAddSaleModal(){
+  document.getElementById('saleModalTitle').textContent='新增銷售記錄';
+  document.getElementById('saleConfirmBtn').textContent='新增記錄';
+  document.getElementById('sl_date').value=todayStr();
+  document.getElementById('sl_qty').value='';
+  document.getElementById('sl_price').value='';
+  document.getElementById('sl_cost').value='';
+  document.getElementById('sl_note').value='';
+  buildSaleModalOpts();
+  document.getElementById('saleConfirmBtn').onclick=confirmAddSale;
+  document.getElementById('saleModal').classList.add('open');
+}
+function confirmAddSale(){
+  const date=document.getElementById('sl_date').value;
+  const slot=document.getElementById('sl_slot').value;
+  const itemName=document.getElementById('sl_item').value;
+  const qty=parseInt(document.getElementById('sl_qty').value)||0;
+  const price=parseFloat(document.getElementById('sl_price').value)||0;
+  const cost=parseFloat(document.getElementById('sl_cost').value)||0;
+  if(!itemName||qty<=0){notify('請選擇品項並填入數量');return;}
+  sales.push({id:nextSaleId++,date,slot,itemName,qty,price,cost,note:document.getElementById('sl_note').value||''});
+  closeModal('saleModal');renderSales();notify(`已新增：${itemName}`);syncSave();
+}
+function openEditSaleModal(id){
+  const r=sales.find(s=>s.id===id);if(!r)return;
+  buildSaleModalOpts();
+  document.getElementById('saleModalTitle').textContent='編輯銷售記錄';
+  document.getElementById('sl_date').value=r.date;
+  document.getElementById('sl_slot').value=r.slot||'';
+  document.getElementById('sl_item').value=r.itemName;
+  document.getElementById('sl_qty').value=r.qty;
+  document.getElementById('sl_price').value=r.price;
+  document.getElementById('sl_cost').value=r.cost;
+  document.getElementById('sl_note').value=r.note||'';
+  document.getElementById('saleConfirmBtn').textContent='儲存';
+  document.getElementById('saleConfirmBtn').onclick=()=>{
+    r.date=document.getElementById('sl_date').value;
+    r.slot=document.getElementById('sl_slot').value;
+    r.itemName=document.getElementById('sl_item').value;
+    r.qty=parseInt(document.getElementById('sl_qty').value)||0;
+    r.price=parseFloat(document.getElementById('sl_price').value)||0;
+    r.cost=parseFloat(document.getElementById('sl_cost').value)||0;
+    r.note=document.getElementById('sl_note').value;
+    closeModal('saleModal');renderSales();notify('已更新');fbSaveAll();showSyncStatus('☁ 儲存中…','var(--warn)');setTimeout(()=>showSyncStatus('☁ 已同步','var(--text3)'),1200);
+  };
+  document.getElementById('saleModal').classList.add('open');
+}
+function removeSale(id){const r=sales.find(s=>s.id===id);sales=sales.filter(s=>s.id!==id);renderSales();notify(`已刪除：${r?.itemName}`);syncSave();}
+function quickAddSale(){
+  const itemName=document.getElementById('qs_item').value;
+  const qty=parseInt(document.getElementById('qs_qty').value)||0;
+  if(!itemName||qty<=0){notify('請選擇品項並填入數量');return;}
+  sales.push({id:nextSaleId++,
+    date:document.getElementById('qs_date').value||todayStr(),
+    slot:document.getElementById('qs_slot').value,
+    itemName,qty,
+    price:parseFloat(document.getElementById('qs_price').value)||0,
+    cost:parseFloat(document.getElementById('qs_cost').value)||0,
+    note:document.getElementById('qs_note').value||''
+  });
+  renderSalesQuickAdd();renderSales();notify(`已新增：${itemName}`);syncSave();
+}
+function exportSalesCSV(){
+  const d=salesFiltered();
+  const rows=[['販售日期','倉道','飲料品項','數量','販售單價','採購單價','營收','成本','毛利','毛利率','備註']];
+  d.forEach(r=>{
+    const rev=r.qty*r.price,cost=r.qty*r.cost,profit=rev-cost;
+    const margin=rev>0?((profit/rev)*100).toFixed(1)+'%':'';
+    rows.push([r.date,r.slot||'',r.itemName,r.qty,r.price,r.cost,rev,cost,profit,margin,r.note||'']);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='販售資料.csv';a.click();notify('CSV 已匯出');
+}
+
+// ══ 初始化 ══
+renderQuickAdd();buildSlotOptions();render();
+
+fbLoad(data => {
+  if(data){
+    if(data.items && data.items.length)        { items         = data.items;         nextId      = Math.max(...items.map(i=>i.id))+1; }
+    if(data.stores && data.stores.length)      { stores        = data.stores; }
+    if(data.manufacturers && data.manufacturers.length){ manufacturers = data.manufacturers; }
+    if(data.sales && data.sales.length)        { sales         = data.sales;         nextSaleId  = Math.max(...sales.map(s=>s.id))+1; }
+    showSyncStatus('☁ 已從雲端載入', 'var(--accent)');
+  } else {
+    showSyncStatus('☁ 資料已就緒', 'var(--text3)');
+  }
+  renderQuickAdd();buildSlotOptions();render();
+  setTimeout(()=>showSyncStatus('☁ 已同步','var(--text3)'),2000);
+});
+
+function syncSave(){
+  showSyncStatus('☁ 儲存中…','var(--warn)');
+  fbSaveAll();
+}
+
+</script>
+</body>
+</html>
